@@ -55,12 +55,12 @@ OPTIONS:
     `summit --model myCustomModel:latest MeetingNotes.md` Summit will call Ollama with the specified model instead of the default "summit:latest".
 
 ## How It Works
-1. **Prompt Construction******
+1. **Prompt Construction**
 Summit prepares a short system prompt instructing the model to generate a concise, date-less summary. It then appends the file's contents to the prompt.
-2. **Ollama Streaming******
+2. **Ollama Streaming**
   - Summit sends the prompt to Ollama's /api/generate endpoint (listening at localhost:11434).
   - As Ollama streams back tokens, Summit prints chain-of-thought (marked with <think>...</think>) to the console, while accumulating the final answer into finalSummary.
-3. **Cleaning & Insertion******
+3. **Cleaning & Insertion**
   - Extra newlines and carriage returns are removed from the final summary.
   - If --insert is provided, Summit scans the original Markdown content for lines matching Summary:: or Summary:: Needs Review. The first matching line is replaced with: `Summary:: ✨<your final summary here>`
 
