@@ -86,4 +86,8 @@ Summit prepares a short system prompt instructing the model to generate a concis
 The updated file is then written back to disk.
 
 ## History/Context
-This tool is an adaptation of [the original "summit" shell script](https://github.com/jrjones/jrjscripts/blob/main/summit). Contributions are welcome--feel free to open issues or submit pull requests for improvements, bug fixes, or new features.
+This tool is an adaptation of [my old "summit" shell script](https://github.com/jrjones/jrjscripts/blob/main/summit). Contributions are welcome--feel free to open issues or submit pull requests for improvements, bug fixes, or new features.
+
+# License
+Licensed under MIT License [[LICENSE]]
+
