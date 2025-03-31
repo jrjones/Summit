@@ -31,8 +31,6 @@ struct Summit: ParsableCommand {
     // 1) Make these static to avoid decoding warnings
     private static let defaultPrompt = """
     Please create a short summary of this markdown note. Don't include dates or times. Be as concise as possible, include acronyms, abbreviations, etc. for brevity.
-    
-    The person who typed the notes is "JRJ", the director of software engineering for Disney Streaming. (While he is never listed in the attendees, he is always present.)  His team own native players (often called "DMP Native" or "NVE" (Native Video Engineering) within the broader "MPE" (Media Player Engineering, which also includes web players) team. JRJ's boss is Jens Loeffler, and his direct reports are Xavier Miville, Janelle Fullen, Peter Korp (NOT Peter Kerp - different guy.) and Nick Tkachov.) JRJ often flags tasks with `- [ ]` and `-[x]` for complete tasks, and a bunch of other status characters for a makeshift "bullet journal."
     """
     private static let defaultEndpoint = "http://localhost:11434/api/generate"
 
