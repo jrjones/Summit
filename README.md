@@ -3,22 +3,22 @@
 **Summit** is a simple command-line tool written in Swift that summarizes Markdown files using a local language model (via [Ollama](https://github.com/jmorganca/ollama)). When inserted into your workflow, Summit can help you quickly generate or update concise summaries in your Markdown notes, particularly if they follow JRJ's Obsidian note structure (Summary:: metadata).
 
 ## Features
-1. **Summarize Markdown Files******
+1. **Summarize Markdown Files**
 	- Provide a short, concise summary of a single Markdown file or an entire directory of Markdown files.
 	- The summary avoids extraneous details like dates/times and focuses on brief clarity.
 
-2. **Optional Summary Insertion******
+2. **Optional Summary Insertion**
 	- If your Markdown file contains a line like Summary:: or Summary:: Needs Review, Summit can insert or replace that line with the generated summary.
 	- The resulting line will appear in your file as, for example: `Summary:: ✨This is the short summary that Summit generated`
 
-3. **Streaming Chain-of-Thought******
+3. **Streaming Chain-of-Thought**
 	- Summit uses Ollama's streaming API, allowing you to see its "thinking" process if the model returns chain-of-thought data (wrapped in <think>...</think>).
 	- The chain-of-thought is displayed live in the console but not included in the final written summary.
 
-4. **Directory Support******
+4. **Directory Support**
 	- Provide a directory, and Summit will automatically summarize each .md file within that directory, optionally inserting the summaries as it goes.
 
-5. **Pluggable Model******
+5. **Pluggable Model**
 	- By default, Summit calls the "summit:latest" model, but you can override this with the --model argument to use any model hosted by your local Ollama instance.
 
 ## Requirements
