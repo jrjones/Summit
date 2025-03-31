@@ -44,6 +44,25 @@ OPTIONS:
       -m, --model        Ollama model name (default: "summit:latest").
       -h, --help         Show help information.
 ```
+
+## Configuration
+The tool will look for the existence of a file in the user's home directory called `org.jrj.summit.config.plist` - if it is present, it will use those values. Otherwise, it will use defaults.
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" 
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>promptTemplate</key>
+    <string>Please create a short summary of this markdown note. Don't include dates or times. Be as concise as possible, include acronyms, abbreviations, etc. for brevity.</string>
+    <key>model</key>
+    <string>summit:latest</string>
+    <key>endpointURL</key>
+    <string>http://localhost:11434/api/generate</string>
+</dict>
+</plist>
+```
+
 ## Examples
 1. **Generate a summary without inserting it**:
     `summit MeetingNotes.md` will read MeetingNotes.md, show a streaming generation in the console, and then print the final short summary.
