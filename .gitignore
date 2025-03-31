@@ -1,0 +1,18 @@
+# Swift build artifacts
+.build/
+.swiftpm/
+Packages/
+Package.pins
+
+# Xcode/IDE
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# Others
+*.swp
+*.swo
