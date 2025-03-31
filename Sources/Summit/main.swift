@@ -10,6 +10,13 @@ struct OllamaResponseChunk: Codable {
     let response: String?
 }
 
+// Using a struct for config, no changes needed here
+struct SummitConfig: Codable {
+    var promptTemplate: String?
+    var model: String?
+    var endpointURL: String?
+}
+
 @main
 struct Summit: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Insert summary into the file.")
@@ -21,68 +28,101 @@ struct Summit: ParsableCommand {
     @Argument(help: "Path of the Markdown file to summarize.")
     var file: String
 
-func run() throws {
-    let fileURL = URL(fileURLWithPath: file)
-    var isDir: ObjCBool = false
-    
-    guard FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDir) else {
-        throw ValidationError("File or directory not found: \(fileURL.path)")
-    }
-    
-    if isDir.boolValue {
-        // Process all .md files in the given directory
-        let items = try FileManager.default.contentsOfDirectory(atPath: fileURL.path)
-        for item in items where item.hasSuffix(".md") {
-            let mdURL = fileURL.appendingPathComponent(item)
-            try summarizeFile(at: mdURL)
-        }
-    } else {
-        // The path points to a single file
-        try summarizeFile(at: fileURL)
-    }
-}
-
-/// Moved the "single-file" summarization logic into its own helper
-private func summarizeFile(at fileURL: URL) throws {
-    let fileContent = try String(contentsOf: fileURL, encoding: .utf8)
-    let prompt = """
+    // 1) Make these static to avoid decoding warnings
+    private static let defaultPrompt = """
     Please create a short summary of this markdown note. Don't include dates or times. Be as concise as possible, include acronyms, abbreviations, etc. for brevity.
-    \(fileContent)
     """
+    private static let defaultEndpoint = "http://localhost:11434/api/generate"
 
-    let requestBody = OllamaRequest(prompt: prompt, model: model)
-// 1) Generate raw summary
-let rawSummary = try callOllamaAPIStreaming(request: requestBody)
+    // 2) Mark run() as mutating so we can modify 'model'
+    mutating func run() throws {
+        // Load optional config
+        let config = loadConfig()
 
-// 2) Replace all forms of line breaks with a single space
-let noLinebreaks = rawSummary
-    .replacingOccurrences(of: "\r\n", with: " ")
-    .replacingOccurrences(of: "\r", with: " ")
-    .replacingOccurrences(of: "\n", with: " ")
+        // If config.model is present (and user hasn't specified a custom model), override
+        if let configModel = config.model, model == "summit:latest" {
+            model = configModel
+        }
 
-// 3) Trim leading/trailing spaces
-let cleanedSummary = noLinebreaks.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fileURL = URL(fileURLWithPath: file)
+        var isDir: ObjCBool = false
 
-// 4) Prepend emoji
-let resultText = "✨" + cleanedSummary
+        guard FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDir) else {
+            throw ValidationError("File or directory not found: \(fileURL.path)")
+        }
 
-    print("\n--- SUMMARY ---\n\(resultText)\n")
-
-    if insert {
-        let (updatedContent, didReplace) = insertSummary(into: fileContent, summary: resultText)
-        if didReplace {
-            try updatedContent.write(to: fileURL, atomically: true, encoding: .utf8)
-            print("✅ Summary updated in \(fileURL.lastPathComponent).")
+        if isDir.boolValue {
+            let items = try FileManager.default.contentsOfDirectory(atPath: fileURL.path)
+            for item in items where item.hasSuffix(".md") {
+                let mdURL = fileURL.appendingPathComponent(item)
+                try summarizeFile(at: mdURL, config: config)
+            }
         } else {
-            print("⚠️ No summary updated in \(fileURL.lastPathComponent). 'Summary::' line not replaced.")
+            try summarizeFile(at: fileURL, config: config)
         }
     }
-}
 
+    /// Load `~/.org.jrj.summit.config` if present, else return empty.
+    private func loadConfig() -> SummitConfig {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let configURL = home.appendingPathComponent(".org.jrj.summit.config.plist")
 
+        guard FileManager.default.fileExists(atPath: configURL.path) else {
+            return SummitConfig()
+        }
 
-    private func callOllamaAPIStreaming(request: OllamaRequest) throws -> String {
-        let endpoint = URL(string: "http://localhost:11434/api/generate")!
+        do {
+            let data = try Data(contentsOf: configURL)
+            // Adjust decoder as needed; this uses PropertyList
+            return try PropertyListDecoder().decode(SummitConfig.self, from: data)
+        } catch {
+            print("⚠️  Failed to load config from \(configURL.path): \(error)")
+            return SummitConfig()
+        }
+    }
+
+    private func summarizeFile(at fileURL: URL, config: SummitConfig) throws {
+        let fileContent = try String(contentsOf: fileURL, encoding: .utf8)
+
+        // Use config.promptTemplate if present; else fallback
+        let promptTemplate = config.promptTemplate ?? Self.defaultPrompt
+        let prompt = "\(promptTemplate)\n\(fileContent)"
+
+        let requestBody = OllamaRequest(prompt: prompt, model: model)
+
+        // Use config.endpointURL if present; else fallback
+        let endpointURL = config.endpointURL ?? Self.defaultEndpoint
+
+        let rawSummary = try callOllamaAPIStreaming(
+            request: requestBody,
+            endpointURL: endpointURL
+        )
+
+        let noLinebreaks = rawSummary
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+
+        let cleanedSummary = noLinebreaks.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resultText = "✨" + cleanedSummary
+
+        print("\n--- SUMMARY ---\n\(resultText)\n")
+
+        if insert {
+            let (updatedContent, didReplace) = insertSummary(into: fileContent, summary: resultText)
+            if didReplace {
+                try updatedContent.write(to: fileURL, atomically: true, encoding: .utf8)
+                print("✅ Summary updated in \(fileURL.lastPathComponent).")
+            } else {
+                print("⚠️ No summary updated in \(fileURL.lastPathComponent). 'Summary::' line not replaced.")
+            }
+        }
+    }
+
+    private func callOllamaAPIStreaming(request: OllamaRequest, endpointURL: String) throws -> String {
+        guard let endpoint = URL(string: endpointURL) else {
+            throw ValidationError("Invalid endpoint URL: \(endpointURL)")
+        }
         var urlRequest = URLRequest(url: endpoint)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -103,8 +143,7 @@ let resultText = "✨" + cleanedSummary
         return streamer.finalSummary
     }
 
-    /// Returns (updatedFileContent, didReplace)
-    /// Only replaces lines that are exactly "Summary::" or "Summary:: Needs Review"
+    /// Inserts summary into the file content.
     private func insertSummary(into original: String, summary: String) -> (String, Bool) {
         var lines = original.components(separatedBy: .newlines)
         var replaced = false
@@ -126,7 +165,7 @@ let resultText = "✨" + cleanedSummary
     }
 }
 
-/// Strips out <think>...</think> from the streamed response, printing partial text as it arrives.
+/// Strips out <think>...</think> from the streamed response
 class StreamingDelegate: NSObject, URLSessionDataDelegate {
     private let decoder = JSONDecoder()
     private var buffer = Data()
@@ -167,12 +206,10 @@ class StreamingDelegate: NSObject, URLSessionDataDelegate {
             if text[i...].hasPrefix("<think>") {
                 isInsideThink = true
                 i = text.index(i, offsetBy: "<think>".count)
-            }
-            else if text[i...].hasPrefix("</think>") {
+            } else if text[i...].hasPrefix("</think>") {
                 isInsideThink = false
                 i = text.index(i, offsetBy: "</think>".count)
-            }
-            else {
+            } else {
                 if isInsideThink {
                     // Show chain-of-thought in console but not in finalSummary
                     print(text[i], terminator: "")
