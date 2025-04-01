@@ -30,7 +30,9 @@ struct Summit: ParsableCommand {
 
     // 1) Make these static to avoid decoding warnings
     private static let defaultPrompt = """
-    Please create a short summary of this markdown note. Don't include dates or times. Be as concise as possible, include acronyms, abbreviations, etc. for brevity.
+    Please create a short summary of this markdown note. 
+    Don't include dates or times. 
+    Be as concise as possible, include acronyms, etc. for brevity.
     """
     private static let defaultEndpoint = "http://localhost:11434/api/generate"
 
